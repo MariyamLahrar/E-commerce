@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <th:block th:replace="~{fragments/layout :: head('Gestion Stock')}"></th:block>
+    <style>
+        :root {
+            --sidebar-width: 280px;
+            --primary-pink: #e91e8c;
+        }
+
+        body {
+            background-color: #f4f7fe;
+            margin: 0;
+            display: flex; /* Aligne la sidebar et le contenu main */
+        }
+
+        /* Conteneur principal qui laisse la place à la sidebar */
+        .admin-main {
+            margin-left: var(--sidebar-width);
+            width: calc(100% - var(--sidebar-width));
+            padding: 40px;
+            min-height: 100vh;
+        }
+
+        .admin-toolbar {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .article-card {
+            background: white;
+            border-radius: 16px;
+            border: none;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            transition: transform 0.2s;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .article-card:hover { transform: translateY(-5px); }
+
+        .img-container {
+            height: 180px;
+            background: #f1f1f1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            position: relative;
+        }
+        .img-container img { width: 100%; height: 100%; object-fit: cover; }
+
+        .stock-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            z-index: 2;
+        }
+        .in-stock { background: #dcfce7; color: #166534; }
+        .out-stock { background: #fee2e2; color: #991b1b; }
+
+        .card-body { padding: 15px; flex-grow: 1; }
+        .article-name { font-weight: 700; font-size: 1rem; color: #333; margin-bottom: 5px; }
+        .article-category { color: #888; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; }
+        .article-price { color: var(--primary-pink); font-weight: 800; font-size: 1.1rem; margin-top: 10px; }
+
+        .admin-actions {
+            border-top: 1px solid #f8f9fa;
+            padding: 12px 15px;
+            display: flex;
+            gap: 8px;
+            background: #fff;
+        }
+        .btn-edit { background: #f4f7fe; color: #555; border-radius: 8px; flex: 1; text-decoration: none; text-align: center; padding: 6px; font-size: 0.8rem; font-weight: 600; }
+        .btn-delete { background: #fff5f5; color: #e03131; border-radius: 8px; flex: 1; border: 1px solid #ffe3e3; padding: 6px; font-size: 0.8rem; font-weight: 600; }
+        .btn-edit:hover { background: #e9ecef; }
+
+        .btn-add {
+            background: linear-gradient(90deg, #e91e8c, #9c4dcc);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: 0.3s;
+        }
+        .btn-add:hover { opacity: 0.9; color: white; transform: scale(1.02); }
+    </style>
+</head>
+<body>
+
+<div th:replace="~{fragments/layout :: sidebar}"></div>
+
+<main class="admin-main">
+
+    <div th:replace="~{fragments/layout :: flash}"></div>
+
+    <div class="admin-toolbar">
+        <div>
+            <h1 class="h3 mb-0 fw-bold"><i class="bi bi-box-seam me-2"></i>Catalogue Articles</h1>
+            <p class="text-muted small mb-0" th:text="${articles.totalElements} + ' articles référencés'"></p>
+        </div>
+
+    </div>
+
+    <div class="row g-4">
+        <div class="col-md-6 col-lg-4 col-xl-3" th:each="article : ${articles.content}">
+            <div class="article-card">
+                <div class="img-container">
+                    <img th:src="${article.imageUrl}" onerror="this.src='https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500'">
+                    <span class="stock-badge"
+                          th:classappend="${article.stock > 0} ? 'in-stock' : 'out-stock'"
+                          th:text="${article.stock > 0} ? 'Stock: ' + ${article.stock} : 'Rupture'">
+                        </span>
+                </div>
+
+                <div class="card-body">
+                    <div class="article-category" th:text="${article.category}">Électronique</div>
+                    <div class="article-name text-truncate" th:text="${article.name}" th:title="${article.name}">Nom du produit</div>
+                    <div class="article-price" th:text="${#numbers.formatDecimal(article.price ?: 0, 1, 'WHITESPACE', 2, 'COMMA')} + ' €'"></div>
+                </div>
+
+                <div class="admin-actions">
+                    <a th:href="@{/admin/articles/edit/{id}(id=${article.id})}" class="btn-edit">
+                        <i class="bi bi-pencil me-1"></i>Editer
+                    </a>
+
+                    <form th:action="@{/admin/articles/delete/{id}(id=${article.id})}" method="post"
+                          onsubmit="return confirm('Supprimer cet article ?')" style="flex: 1; display: flex;">
+                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                        <button type="submit" class="btn-delete w-100">
+                            <i class="bi bi-trash me-1"></i>Supprimer
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <nav th:if="${articles.totalPages > 1}" class="d-flex justify-content-center mt-5">
+        <ul class="pagination">
+            <li class="page-item" th:each="i : ${#numbers.sequence(0, articles.totalPages - 1)}"
+                th:classappend="${i == articles.number} ? 'active'">
+                <a class="page-link shadow-sm border-0 mx-1 rounded-pill px-3"
+                   th:href="@{/admin/articles(page=${i})}" th:text="${i + 1}"></a>
+            </li>
+        </ul>
+    </nav>
+
+</main>
+
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

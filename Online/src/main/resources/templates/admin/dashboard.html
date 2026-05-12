@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Dashboard Admin')}"></head>
+
+<body>
+<div class="admin-layout">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+        <div class="sidebar-brand">
+            <span style="font-size:2rem;">🛍</span>
+            <div>
+                <div class="sidebar-brand-name">ÉléganceShop</div>
+                <div class="sidebar-brand-sub">Administration</div>
+            </div>
+        </div>
+
+        <nav class="sidebar-menu">
+            <div class="sidebar-section-title">Principal</div>
+
+            <a th:href="@{/admin/dashboard}" class="sidebar-item active">
+                <i class="bi bi-speedometer2"></i> Dashboard
+            </a>
+
+            <a th:href="@{/shop}" class="sidebar-item">
+                <i class="bi bi-grid"></i> Voir la boutique
+            </a>
+
+            <div class="sidebar-section-title">Gestion</div>
+
+            <a th:href="@{/admin/articles}" class="sidebar-item">
+                <i class="bi bi-box-seam"></i> Articles
+            </a>
+
+            <a th:href="@{/admin/users}" class="sidebar-item">
+                <i class="bi bi-people"></i> Utilisateurs
+            </a>
+
+            <a th:href="@{/admin/orders}" class="sidebar-item">
+                <i class="bi bi-bag"></i> Commandes
+            </a>
+        </nav>
+
+        <div class="sidebar-logout">
+            <form th:action="@{/logout}" method="post">
+                <input type="hidden"
+                       th:name="${_csrf.parameterName}"
+                       th:value="${_csrf.token}"/>
+
+                <button type="submit"
+                        class="sidebar-item border-0 bg-transparent w-100 text-start">
+                    <i class="bi bi-box-arrow-right"></i> Déconnexion
+                </button>
+            </form>
+        </div>
+    </aside>
+
+    <!-- CONTENU -->
+    <div class="admin-content-area">
+
+        <div class="admin-topbar">
+            <div>
+                <h1 class="admin-page-title">Dashboard</h1>
+                <p class="admin-page-sub">Vue d'ensemble de votre boutique</p>
+            </div>
+
+            <span class="admin-badge-role">
+                <i class="bi bi-person-fill me-1"></i>Admin
+            </span>
+        </div>
+
+        <div class="admin-body">
+
+            <div th:replace="~{fragments/layout :: flash}"></div>
+
+            <!-- STATISTIQUES -->
+            <div class="row g-3 mb-4">
+
+                <div class="col-6 col-xl-3">
+                    <div class="stat-card pink">
+                        <i class="bi bi-people-fill stat-card-icon"></i>
+                        <div class="stat-card-value" th:text="${totalUsers}">0</div>
+                        <div class="stat-card-label">Clients inscrits</div>
+                    </div>
+                </div>
+
+                <div class="col-6 col-xl-3">
+                    <div class="stat-card purple">
+                        <i class="bi bi-box-seam-fill stat-card-icon"></i>
+                        <div class="stat-card-value" th:text="${totalArticles}">0</div>
+                        <div class="stat-card-label">Articles</div>
+                    </div>
+                </div>
+
+                <div class="col-6 col-xl-3">
+                    <div class="stat-card green">
+                        <i class="bi bi-bag-check-fill stat-card-icon"></i>
+                        <div class="stat-card-value" th:text="${totalOrders}">0</div>
+                        <div class="stat-card-label">Commandes</div>
+                    </div>
+                </div>
+
+                <div class="col-6 col-xl-3">
+                    <div class="stat-card gold">
+                        <i class="bi bi-cash-stack stat-card-icon"></i>
+
+                        <!-- ✅ FIX IMPORTANT : POINT AU LIEU DE DOT -->
+                        <div class="stat-card-value"
+                             th:text="${totalRevenue != null ? #numbers.formatDecimal(totalRevenue,1,'COMMA',2,'POINT') : '0.00'} + ' €'">
+                            0€
+                        </div>
+
+                        <div class="stat-card-label">Revenu validé</div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- STATUTS -->
+            <div class="row g-3 mb-4">
+
+                <div class="col-md-4">
+                    <div class="mini-stat orange">
+                        <span class="mini-stat-num" th:text="${pendingOrders}">0</span>
+                        <span class="mini-stat-label">⏳ En attente</span>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="mini-stat green">
+                        <span class="mini-stat-num" th:text="${validatedOrders}">0</span>
+                        <span class="mini-stat-label">✅ Validées</span>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="mini-stat red">
+                        <span class="mini-stat-num" th:text="${cancelledOrders}">0</span>
+                        <span class="mini-stat-label">❌ Annulées</span>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- TABLE -->
+            <div class="admin-table-card mb-4">
+
+                <div class="admin-table-header">
+                    <span class="fw-bold">📋 Dernières commandes</span>
+                    <a th:href="@{/admin/orders}" class="btn btn-sm btn-primary-custom">
+                        Voir tout
+                    </a>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table admin-table">
+
+                        <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Client</th>
+                            <th>Montant</th>
+                            <th>Statut</th>
+                            <th>Date</th>
+                        </tr>
+                        </thead>
+
+                        <tbody>
+
+                        <tr th:if="${recentOrders == null or recentOrders.isEmpty()}">
+                            <td colspan="5" class="text-center text-muted py-4">
+                                Aucune commande
+                            </td>
+                        </tr>
+
+                        <tr th:each="order : ${recentOrders}">
+                            <td class="fw-bold text-purple">
+                                #<span th:text="${order.id}"></span>
+                            </td>
+
+                            <td>
+                                <div class="fw-600" th:text="${order.username}">User</div>
+                                <div class="text-muted small" th:text="${order.userEmail}">Email</div>
+                            </td>
+
+                            <td class="fw-bold" style="color:#e91e8c;"
+                                th:text="${order.totalAmount != null ? #numbers.formatDecimal(order.totalAmount,1,'COMMA',2,'POINT') : '0.00'} + ' €'">
+                                0€
+                            </td>
+
+                            <td>
+                                <span class="status-pill"
+                                      th:classappend="'status-' + ${order.status}"
+                                      th:text="${order.status.displayName}">
+                                    Statut
+                                </span>
+                            </td>
+
+                            <td class="text-muted small"
+                                th:text="${#temporals.format(order.createdAt,'dd/MM/yyyy')}">
+                                Date
+                            </td>
+                        </tr>
+
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- QUICK LINKS -->
+            <div class="row g-3">
+
+                <div class="col-md-4">
+                    <a th:href="@{/admin/articles/new}" class="quick-link pink">
+                        <span style="font-size:2rem;">➕</span>
+                        <span class="fw-bold">Ajouter un article</span>
+                    </a>
+                </div>
+
+                <div class="col-md-4">
+                    <a th:href="@{/admin/users}" class="quick-link blue">
+                        <span style="font-size:2rem;">👥</span>
+                        <span class="fw-bold">Gérer utilisateurs</span>
+                    </a>
+                </div>
+
+                <div class="col-md-4">
+                    <a th:href="@{/admin/orders}" class="quick-link green">
+                        <span style="font-size:2rem;">📦</span>
+                        <span class="fw-bold">Gérer commandes</span>
+                    </a>
+                </div>
+
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

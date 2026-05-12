@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Inscription')}"></head>
+<body class="auth-page">
+
+<div class="auth-card animate-up" style="max-width:520px;">
+    <div class="auth-logo">✨</div>
+    <h1 class="auth-title">Créer un compte</h1>
+    <p class="auth-subtitle">Rejoignez ÉléganceShop dès aujourd'hui</p>
+
+    <form th:action="@{/register}" th:object="${userDTO}" method="post">
+        <input type="hidden"
+               th:name="${_csrf.parameterName}"
+               th:value="${_csrf.token}"/>
+
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label class="form-label">Prénom</label>
+                <input type="text" class="form-control form-control-custom"
+                       th:field="*{firstName}" placeholder="Votre prénom"/>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">Nom</label>
+                <input type="text" class="form-control form-control-custom"
+                       th:field="*{lastName}" placeholder="Votre nom"/>
+            </div>
+            <div class="col-12">
+                <label class="form-label">
+                    <i class="bi bi-person me-1"></i>Identifiant *
+                </label>
+                <input type="text" class="form-control form-control-custom"
+                       th:field="*{username}" placeholder="Choisissez un identifiant" required/>
+                <div class="field-error"
+                     th:if="${#fields.hasErrors('username')}"
+                     th:errors="*{username}"></div>
+            </div>
+            <div class="col-12">
+                <label class="form-label">
+                    <i class="bi bi-envelope me-1"></i>Email *
+                </label>
+                <input type="email" class="form-control form-control-custom"
+                       th:field="*{email}" placeholder="votre@email.com" required/>
+                <div class="field-error"
+                     th:if="${#fields.hasErrors('email')}"
+                     th:errors="*{email}"></div>
+            </div>
+            <div class="col-12">
+                <label class="form-label">
+                    <i class="bi bi-lock me-1"></i>Mot de passe *
+                </label>
+                <input type="password" class="form-control form-control-custom"
+                       th:field="*{password}" placeholder="Minimum 6 caractères" required/>
+                <div class="field-error"
+                     th:if="${#fields.hasErrors('password')}"
+                     th:errors="*{password}"></div>
+            </div>
+            <div class="col-12">
+                <label class="form-label">
+                    <i class="bi bi-phone me-1"></i>Téléphone
+                </label>
+                <input type="tel" class="form-control form-control-custom"
+                       th:field="*{phone}" placeholder="+212 6XX XX XX XX"/>
+            </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary-custom w-100 mt-4 mb-3">
+            <i class="bi bi-person-check me-2"></i>Créer mon compte
+        </button>
+    </form>
+
+    <div class="divider-text">Déjà inscrit ?</div>
+    <a th:href="@{/login}" class="btn btn-outline-custom w-100 mt-3">
+        <i class="bi bi-box-arrow-in-right me-2"></i>Se connecter
+    </a>
+</div>
+
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

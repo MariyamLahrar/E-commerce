@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <th:block th:replace="~{fragments/layout :: head('Boutique')}"></th:block>
+</head>
+<body>
+
+<nav th:replace="~{fragments/layout :: navbar}"></nav>
+<div th:replace="~{fragments/layout :: flash}"></div>
+
+<main class="container py-5">
+
+    <div class="shop-hero mb-5 p-4 rounded-4 shadow-sm" style="background: white; border-left: 5px solid #e91e8c;">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+            <div>
+                <h1 class="fw-bold mb-1">✨ Notre Boutique</h1>
+                <p class="text-muted mb-0">Découvrez notre sélection de produits tech & lifestyle</p>
+            </div>
+            <div class="shop-stats bg-light p-3 rounded-3 text-center">
+                <span class="d-block h4 fw-800 text-primary mb-0" th:text="${articles.totalElements}">0</span>
+                <span class="text-muted small text-uppercase fw-bold">produits</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="filter-bar mb-4 p-3 bg-white rounded-3 shadow-sm">
+        <form th:action="@{/shop}" method="get" class="row g-2 align-items-center">
+            <div class="col-12 col-lg-4">
+                <div class="input-group">
+                    <span class="input-group-text bg-white border-end-0"><i class="bi bi-search"></i></span>
+                    <input type="text" name="search" th:value="${search}" class="form-control border-start-0 ps-0" placeholder="Rechercher un produit...">
+                </div>
+            </div>
+            <div class="col-6 col-lg-2">
+                <select name="category" class="form-select">
+                    <option value="">Toutes catégories</option>
+                    <option th:each="cat : ${categories}" th:value="${cat}" th:text="${cat}" th:selected="${cat == category}"></option>
+                </select>
+            </div>
+            <div class="col-6 col-lg-2">
+                <select name="sort" class="form-select">
+                    <option value="name" th:selected="${sort == 'name'}">Nom A-Z</option>
+                    <option value="price_asc" th:selected="${sort == 'price_asc'}">Prix ↑</option>
+                    <option value="price_desc" th:selected="${sort == 'price_desc'}">Prix ↓</option>
+                </select>
+            </div>
+            <div class="col-12 col-lg-4 d-flex gap-2">
+                <button type="submit" class="btn btn-primary-custom flex-grow-1 rounded-pill">
+                    <i class="bi bi-funnel me-1"></i>Filtrer
+                </button>
+                <a th:href="@{/shop}" class="btn btn-light rounded-pill px-3 border"><i class="bi bi-arrow-counterclockwise"></i></a>
+            </div>
+        </form>
+    </div>
+
+    <div class="row g-4" th:if="${!articles.content.isEmpty()}">
+        <div class="col-6 col-md-4 col-xl-3" th:each="article : ${articles.content}">
+            <div class="article-card h-100 shadow-sm border-0">
+                <div class="position-relative overflow-hidden rounded-top-4" style="height: 220px;">
+                    <img th:src="${article.imageUrl}" class="w-100 h-100 object-fit-cover"
+                         onerror="this.src='https://images.unsplash.com/photo-1518770660439-4636190af475?w=400'">
+                    <span class="position-absolute top-0 start-0 m-2 badge bg-dark opacity-75" th:text="${article.category}">Cat</span>
+
+                    <div sec:authorize="hasRole('USER')" class="position-absolute top-0 end-0 m-2">
+                        <form th:action="${favoriteIds != null and favoriteIds.contains(article.id)} ? @{/favorites/remove/{id}(id=${article.id})} : @{/favorites/add/{id}(id=${article.id})}" method="post">
+                            <input type="hidden" name="redirect" value="/shop"/>
+                            <button type="submit" class="btn btn-white btn-sm rounded-circle shadow-sm"
+                                    th:style="${favoriteIds != null and favoriteIds.contains(article.id)} ? 'color: #e91e8c' : 'color: #ccc'">
+                                <i class="bi" th:classappend="${favoriteIds != null and favoriteIds.contains(article.id)} ? 'bi-heart-fill' : 'bi-heart'"></i>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="p-3 d-flex flex-column h-100">
+                    <small class="text-uppercase fw-bold text-muted" style="font-size: 0.7rem;" th:text="${article.brand}">Marque</small>
+                    <h5 class="fw-bold text-dark text-truncate mb-1" th:text="${article.name}">Nom Produit</h5>
+                    <p class="text-muted small mb-3" th:text="${#strings.abbreviate(article.description, 50)}">Description...</p>
+
+                    <div class="mt-auto">
+                        <div class="d-flex align-items-center justify-content-between mb-3">
+                            <span class="h5 fw-800 text-primary mb-0"
+                                  th:text="${#numbers.formatDecimal(article.price ?: 0, 1, 'POINT', 2, 'COMMA')} + ' €'">0,00 €</span>
+
+                            <span th:if="${article.stock == 0}" class="badge bg-danger">Rupture</span>
+                            <span th:if="${article.stock > 0 and article.stock <= 3}" class="badge bg-warning text-dark" th:text="'Stock: ' + ${article.stock}"></span>
+                        </div>
+
+                        <sec:authorize access="hasRole('USER')">
+                            <form th:if="${article.stock > 0}" th:action="@{/cart/add}" method="post">
+                                <input type="hidden" name="articleId" th:value="${article.id}"/>
+                                <input type="hidden" name="quantity" value="1"/>
+                                <button type="submit" class="btn btn-primary-custom w-100 btn-sm rounded-pill shadow-sm">
+                                    <i class="bi bi-cart-plus me-2"></i>Ajouter au panier
+                                </button>
+                            </form>
+                        </sec:authorize>
+                        <sec:authorize access="!isAuthenticated()">
+                            <a th:href="@{/login}" class="btn btn-outline-secondary w-100 btn-sm rounded-pill">Se connecter</a>
+                        </sec:authorize>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div th:if="${articles.content.isEmpty()}" class="text-center py-5">
+        <div class="mb-3 fs-1 text-muted">🔍</div>
+        <h3 class="fw-bold">Aucun article trouvé</h3>
+        <p class="text-muted">Désolé, aucun produit ne correspond à votre recherche.</p>
+        <a th:href="@{/shop}" class="btn btn-primary-custom rounded-pill">Réinitialiser</a>
+    </div>
+
+    <nav th:if="${articles.totalPages > 1}" class="mt-5 d-flex justify-content-center">
+        <ul class="pagination pagination-rounded shadow-sm">
+            <li class="page-item" th:classappend="${articles.first} ? 'disabled'">
+                <a class="page-link" th:href="@{/shop(search=${search},category=${category},sort=${sort},page=${articles.number-1})}">
+                    <i class="bi bi-chevron-left"></i>
+                </a>
+            </li>
+            <li class="page-item" th:each="i : ${#numbers.sequence(0, articles.totalPages - 1)}"
+                th:classappend="${i == articles.number} ? 'active'">
+                <a class="page-link" th:href="@{/shop(search=${search},category=${category},sort=${sort},page=${i})}" th:text="${i + 1}"></a>
+            </li>
+            <li class="page-item" th:classappend="${articles.last} ? 'disabled'">
+                <a class="page-link" th:href="@{/shop(search=${search},category=${category},sort=${sort},page=${articles.number+1})}">
+                    <i class="bi bi-chevron-right"></i>
+                </a>
+            </li>
+        </ul>
+    </nav>
+
+</main>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+
+</body>
+</html>

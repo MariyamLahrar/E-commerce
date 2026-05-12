@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <th:block th:replace="~{fragments/layout :: head('Gestion Commandes')}"></th:block>
+    <style>
+        :root {
+            --sidebar-width: 280px;
+            --primary-pink: #e91e8c;
+            --status-pending-bg: #fef9c3;
+            --status-pending-text: #854d0e;
+            --status-valid-bg: #dcfce7;
+            --status-valid-text: #166534;
+            --status-cancel-bg: #fee2e2;
+            --status-cancel-text: #991b1b;
+            --danger-red: #dc3545;
+        }
+
+        body {
+            background-color: #f4f7fe;
+            margin: 0;
+            display: flex;
+        }
+
+        .admin-main {
+            margin-left: var(--sidebar-width);
+            width: calc(100% - var(--sidebar-width));
+            padding: 40px;
+            min-height: 100vh;
+        }
+
+        .admin-card {
+            background: white;
+            border-radius: 16px;
+            border: none;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+
+        .order-table { width: 100%; margin-bottom: 0; border-collapse: collapse; }
+        .order-table th { background: #fdfdfd; color: #888; font-weight: 600; font-size: 0.8rem; text-transform: uppercase; padding: 15px 20px; border-bottom: 1px solid #eee; }
+        .order-table td { padding: 15px 20px; vertical-align: middle; border-top: 1px solid #f1f1f1; background: white; }
+
+        .user-info { display: flex; align-items: center; gap: 10px; }
+        .user-avatar {
+            width: 40px; height: 40px; background: #f1f1f1;
+            border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            font-weight: bold; color: #555; text-transform: uppercase;
+        }
+
+        .status-pill {
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            display: inline-block;
+        }
+        .status-EN_ATTENTE { background: var(--status-pending-bg); color: var(--status-pending-text); }
+        .status-VALIDEE { background: var(--status-valid-bg); color: var(--status-valid-text); }
+        .status-ANNULEE { background: var(--status-cancel-bg); color: var(--status-cancel-text); }
+
+        .action-select {
+            padding: 6px 12px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            font-size: 0.9rem;
+            outline: none;
+        }
+        .btn-update {
+            background: var(--primary-pink);
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: 0.2s;
+            cursor: pointer;
+        }
+        .btn-update:hover { opacity: 0.9; transform: translateY(-1px); }
+
+        /* Style pour le bouton supprimer */
+        .btn-delete {
+            background: #fff5f5;
+            color: var(--danger-red);
+            border: 1px solid #ffdada;
+            padding: 8px 12px;
+            border-radius: 8px;
+            transition: 0.2s;
+            cursor: pointer;
+        }
+        .btn-delete:hover {
+            background: var(--danger-red);
+            color: white;
+        }
+
+        .page-item.active .page-link {
+            background-color: var(--primary-pink) !important;
+            color: white !important;
+        }
+    </style>
+</head>
+<body>
+
+<div th:replace="~{fragments/layout :: sidebar}"></div>
+
+<main class="admin-main">
+
+    <div th:replace="~{fragments/layout :: flash}"></div>
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="fw-bold mb-1"><i class="bi bi-receipt me-2"></i>Gestion des Commandes</h1>
+            <p class="text-muted">Visualisez et modifiez le statut des commandes clients</p>
+        </div>
+        <div class="badge bg-white text-dark shadow-sm p-3 px-4 rounded-pill border">
+            <span class="fw-bold text-primary" th:text="${orders != null ? orders.totalElements : 0}">0</span> commandes
+        </div>
+    </div>
+
+    <div class="admin-card">
+        <div class="table-responsive">
+            <table class="order-table">
+                <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Client</th>
+                    <th>Date</th>
+                    <th>Articles</th>
+                    <th>Total</th>
+                    <th>Statut</th>
+                    <th>Actions</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="order : ${orders.content}">
+                    <td class="fw-bold text-muted" th:text="'#' + ${order.id}"></td>
+                    <td>
+                        <div class="user-info">
+                            <div class="user-avatar"
+                                 th:text="${order.username != null && !order.username.isEmpty() ? #strings.substring(order.username,0,1) : 'U'}">
+                            </div>
+                            <div>
+                                <div class="fw-600" th:text="${order.username}">Client</div>
+                                <small class="text-muted" th:text="${order.userEmail}">email@exemple.com</small>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="text-muted" th:text="${#temporals.format(order.createdAt,'dd MMM yyyy')}"></td>
+                    <td>
+                        <span class="badge bg-light text-dark border" th:text="${order.items.size()} + ' produits'"></span>
+                    </td>
+                    <td class="fw-bold text-dark">
+                        <span th:text="${#numbers.formatDecimal(order.totalAmount, 1, 'WHITESPACE', 2, 'COMMA')}"></span> €
+                    </td>
+                    <td>
+                        <span class="status-pill" th:classappend="'status-' + ${order.status}" th:text="${order.status.displayName}"></span>
+                    </td>
+                    <td>
+                        <div class="d-flex gap-2">
+                            <!-- Formulaire de mise à jour du statut -->
+                            <form th:action="@{/admin/orders/update-status/{id}(id=${order.id})}" method="post" class="d-flex gap-2">
+                                <select name="status" class="action-select">
+                                    <option th:each="s : ${statuses}"
+                                            th:value="${s}"
+                                            th:text="${s.displayName}"
+                                            th:selected="${s == order.status}">
+                                    </option>
+                                </select>
+                                <button type="submit" class="btn-update">OK</button>
+                            </form>
+
+                            <!-- Formulaire de suppression -->
+                            <form th:action="@{/admin/orders/delete/{id}(id=${order.id})}" method="post"
+                                  th:onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer définitivement cette commande ?');">
+                                <button type="submit" class="btn-delete" title="Supprimer la commande">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                <tr th:if="${orders == null || orders.isEmpty()}">
+                    <td colspan="7" class="text-center py-5 text-muted">Aucune commande trouvée.</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <nav th:if="${orders != null && orders.totalPages > 1}" class="d-flex justify-content-center mt-4">
+        <ul class="pagination">
+            <li class="page-item" th:each="i : ${#numbers.sequence(0, orders.totalPages - 1)}"
+                th:classappend="${i == orders.number} ? 'active'">
+                <a class="page-link shadow-sm border-0 mx-1 rounded-pill px-3"
+                   th:href="@{/admin/orders(page=${i})}" th:text="${i + 1}">1</a>
+            </li>
+        </ul>
+    </nav>
+
+</main>
+
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+
+</body>
+</html>

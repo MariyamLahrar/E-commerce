@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Gestion Utilisateurs')}"></head>
+<body>
+<div class="admin-layout">
+
+    <aside class="sidebar">
+        <div class="sidebar-brand">
+            <span style="font-size:2rem;">🛍</span>
+            <div>
+                <div class="sidebar-brand-name">ÉléganceShop</div>
+                <div class="sidebar-brand-sub">Administration</div>
+            </div>
+        </div>
+        <nav class="sidebar-menu">
+            <div class="sidebar-section-title">Principal</div>
+            <a th:href="@{/admin/dashboard}" class="sidebar-item">
+                <i class="bi bi-speedometer2"></i> Dashboard
+            </a>
+            <a th:href="@{/shop}" class="sidebar-item">
+                <i class="bi bi-grid"></i> Voir la boutique
+            </a>
+            <div class="sidebar-section-title">Gestion</div>
+            <a th:href="@{/admin/articles}" class="sidebar-item">
+                <i class="bi bi-box-seam"></i> Articles
+            </a>
+            <a th:href="@{/admin/users}" class="sidebar-item active">
+                <i class="bi bi-people"></i> Utilisateurs
+            </a>
+            <a th:href="@{/admin/orders}" class="sidebar-item">
+                <i class="bi bi-bag"></i> Commandes
+            </a>
+        </nav>
+        <div class="sidebar-logout">
+            <form th:action="@{/logout}" method="post">
+                <input type="hidden"
+                       th:name="${_csrf.parameterName}"
+                       th:value="${_csrf.token}"/>
+                <button type="submit"
+                        class="sidebar-item border-0 bg-transparent w-100 text-start">
+                    <i class="bi bi-box-arrow-right"></i> Déconnexion
+                </button>
+            </form>
+        </div>
+    </aside>
+
+    <div class="admin-content-area">
+        <div class="admin-topbar">
+            <div>
+                <h1 class="admin-page-title">👥 Utilisateurs</h1>
+                <p class="admin-page-sub"
+                   th:text="${users.totalElements} + ' utilisateurs inscrits'">Users</p>
+            </div>
+            <button class="btn btn-primary-custom"
+                    data-bs-toggle="modal"
+                    data-bs-target="#addUserModal">
+                <i class="bi bi-person-plus me-2"></i>Nouvel utilisateur
+            </button>
+        </div>
+
+        <div class="admin-body">
+            <div th:replace="~{fragments/layout :: flash}"></div>
+
+            <div class="admin-table-card">
+                <div class="admin-table-header">
+                    <form th:action="@{/admin/users}" method="get"
+                          class="d-flex gap-2">
+                        <input type="text" name="search"
+                               th:value="${search}"
+                               class="form-control search-input"
+                               style="max-width:280px;"
+                               placeholder="Rechercher..."/>
+                        <button type="submit"
+                                class="btn btn-primary-custom btn-sm">
+                            <i class="bi bi-search"></i>
+                        </button>
+                        <a th:href="@{/admin/users}"
+                           class="btn btn-light btn-sm rounded-pill">Reset</a>
+                    </form>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table admin-table align-middle">
+                        <thead>
+                        <tr>
+                            <th>Avatar</th>
+                            <th>Identifiant</th>
+                            <th>Email</th>
+                            <th>Nom complet</th>
+                            <th>Rôles</th>
+                            <th>Statut</th>
+                            <th>Actions</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr th:if="${users.content.isEmpty()}">
+                            <td colspan="7" class="text-center text-muted py-5">
+                                Aucun utilisateur trouvé
+                            </td>
+                        </tr>
+                        <tr th:each="user : ${users.content}">
+                            <td>
+                                <div class="user-avatar-sm"
+                                     th:text="${#strings.substring(user.username,0,1).toUpperCase()}">U</div>
+                            </td>
+                            <td class="fw-bold"
+                                th:text="${user.username}">Username</td>
+                            <td th:text="${user.email}">Email</td>
+                            <td th:text="${user.firstName} + ' ' + ${user.lastName}">Nom</td>
+                            <td>
+                  <span th:each="role : ${user.roles}"
+                        th:text="${role}"
+                        th:class="${role == 'ROLE_ADMIN'}
+                                  ? 'badge-role admin' : 'badge-role user'">Role</span>
+                            </td>
+                            <td>
+                  <span th:if="${user.enabled}"
+                        class="badge bg-success">Actif</span>
+                                <span th:if="${!user.enabled}"
+                                      class="badge bg-secondary">Inactif</span>
+                            </td>
+                            <td>
+                                <div class="d-flex gap-1">
+                                    <button class="btn btn-sm btn-warning rounded-3"
+                                            th:attr="data-id=${user.id},
+                                     data-username=${user.username},
+                                     data-email=${user.email},
+                                     data-firstname=${user.firstName},
+                                     data-lastname=${user.lastName},
+                                     data-phone=${user.phone},
+                                     data-enabled=${user.enabled}"
+                                            onclick="openEditModal(this)"
+                                            title="Modifier">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    <form th:action="@{/admin/users/delete/{id}(id=${user.id})}"
+                                          method="post"
+                                          onsubmit="return confirm('Supprimer cet utilisateur ?')">
+                                        <input type="hidden"
+                                               th:name="${_csrf.parameterName}"
+                                               th:value="${_csrf.token}"/>
+                                        <button type="submit"
+                                                class="btn btn-sm btn-danger rounded-3"
+                                                title="Supprimer">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination -->
+                <div class="p-3 d-flex justify-content-center"
+                     th:if="${users.totalPages > 1}">
+                    <ul class="pagination mb-0">
+                        <li class="page-item"
+                            th:class="${users.first} ? 'page-item disabled' : 'page-item'">
+                            <a class="page-link"
+                               th:href="@{/admin/users(search=${search},page=${users.number-1})}">
+                                <i class="bi bi-chevron-left"></i>
+                            </a>
+                        </li>
+                        <li class="page-item"
+                            th:each="i : ${#numbers.sequence(0,users.totalPages-1)}"
+                            th:class="${i == users.number} ? 'page-item active' : 'page-item'">
+                            <a class="page-link"
+                               th:href="@{/admin/users(search=${search},page=${i})}"
+                               th:text="${i+1}">1</a>
+                        </li>
+                        <li class="page-item"
+                            th:class="${users.last} ? 'page-item disabled' : 'page-item'">
+                            <a class="page-link"
+                               th:href="@{/admin/users(search=${search},page=${users.number+1})}">
+                                <i class="bi bi-chevron-right"></i>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Ajouter utilisateur -->
+<div class="modal fade" id="addUserModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 rounded-4">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold">➕ Nouvel utilisateur</h5>
+                <button type="button" class="btn-close"
+                        data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form th:action="@{/admin/users/new}" method="post">
+                    <input type="hidden"
+                           th:name="${_csrf.parameterName}"
+                           th:value="${_csrf.token}"/>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Identifiant *</label>
+                            <input type="text" name="username"
+                                   class="form-control form-control-custom"
+                                   required/>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Email *</label>
+                            <input type="email" name="email"
+                                   class="form-control form-control-custom"
+                                   required/>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Prénom</label>
+                            <input type="text" name="firstName"
+                                   class="form-control form-control-custom"/>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Nom</label>
+                            <input type="text" name="lastName"
+                                   class="form-control form-control-custom"/>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Téléphone</label>
+                            <input type="tel" name="phone"
+                                   class="form-control form-control-custom"/>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Rôle</label>
+                            <select name="role"
+                                    class="form-select form-control-custom">
+                                <option value="ROLE_USER">USER</option>
+                                <option value="ROLE_ADMIN">ADMIN</option>
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Mot de passe *</label>
+                            <input type="password" name="password"
+                                   class="form-control form-control-custom"
+                                   required/>
+                        </div>
+                        <div class="col-12">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox"
+                                       name="enabled" id="newEnabled" checked/>
+                                <label class="form-check-label"
+                                       for="newEnabled">Compte actif</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="d-flex gap-2 mt-4">
+                        <button type="submit" class="btn btn-primary-custom flex-grow-1">
+                            <i class="bi bi-person-plus me-2"></i>Créer
+                        </button>
+                        <button type="button"
+                                class="btn btn-light rounded-pill"
+                                data-bs-dismiss="modal">Annuler</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Modifier utilisateur -->
+<div class="modal fade" id="editUserModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 rounded-4">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold">✏️ Modifier l'utilisateur</h5>
+                <button type="button" class="btn-close"
+                        data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editUserForm" method="post">
+                    <input type="hidden"
+                           th:name="${_csrf.parameterName}"
+                           th:value="${_csrf.token}"/>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Identifiant *</label>
+                            <input type="text" name="username" id="editUsername"
+                                   class="form-control form-control-custom"
+                                   required/>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Email *</label>
+                            <input type="email" name="email" id="editEmail"
+                                   class="form-control form-control-custom"
+                                   required/>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Prénom</label>
+                            <input type="text" name="firstName"
+                                   id="editFirstName"
+                                   class="form-control form-control-custom"/>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Nom</label>
+                            <input type="text" name="lastName"
+                                   id="editLastName"
+                                   class="form-control form-control-custom"/>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Téléphone</label>
+                            <input type="tel" name="phone" id="editPhone"
+                                   class="form-control form-control-custom"/>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Nouveau mot de passe</label>
+                            <input type="password" name="password"
+                                   class="form-control form-control-custom"
+                                   placeholder="Laisser vide = inchangé"/>
+                        </div>
+                        <div class="col-12">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox"
+                                       name="enabled" id="editEnabled"/>
+                                <label class="form-check-label"
+                                       for="editEnabled">Compte actif</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="d-flex gap-2 mt-4">
+                        <button type="submit"
+                                class="btn btn-primary-custom flex-grow-1">
+                            <i class="bi bi-check-lg me-2"></i>Enregistrer
+                        </button>
+                        <button type="button"
+                                class="btn btn-light rounded-pill"
+                                data-bs-dismiss="modal">Annuler</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+<script>
+    function openEditModal(btn) {
+        const id = btn.dataset.id;
+        document.getElementById('editUserForm').action =
+            '/admin/users/edit/' + id;
+        document.getElementById('editUsername').value =
+            btn.dataset.username || '';
+        document.getElementById('editEmail').value =
+            btn.dataset.email || '';
+        document.getElementById('editFirstName').value =
+            btn.dataset.firstname || '';
+        document.getElementById('editLastName').value =
+            btn.dataset.lastname || '';
+        document.getElementById('editPhone').value =
+            btn.dataset.phone || '';
+        document.getElementById('editEnabled').checked =
+            btn.dataset.enabled === 'true';
+        new bootstrap.Modal(
+            document.getElementById('editUserModal')
+        ).show();
+    }
+</script>
+</body>
+</html>
